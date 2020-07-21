@@ -1,0 +1,22 @@
+.Button {
+    cursor: pointer;
+    padding: 15px 52px;
+    border: none;
+    background: transparent;
+    font-size: 18px;
+    color: white;
+    margin: 0 10px;
+    transition: all 0.5s ease-in-out;
+}
+
+.Button:first-of-type {
+    margin-left: 0;
+}
+
+.Danger {
+    background: #fb5051;
+}
+
+.Success {
+    background: #00abf0;
+}
