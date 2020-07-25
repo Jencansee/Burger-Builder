@@ -1,9 +1,12 @@
 import React, { Component } from 'react';
+import axios from '../../axios-orders';
 import Aux from '../../HOC/Auxiliary';
 import Burger from '../../components/Burger/Burger';
 import BuildControls from '../../components/Burger/BuildControls/BuildControls';
 import Modal from '../../components/UI/Modal/Modal';
 import OrderSummary from '../../components/Burger/OrderSummary/OrderSummary';
+import Spinner from '../../components/UI/Spinner/spinner';
+import withErrorHandler from '../../HOC/withErrorHandler/withErrorHandler';
 
 const INGREDIENT_PRICES = {
     salad: 0.5,
@@ -23,6 +26,7 @@ class BurgerBuilder extends Component {
         totalPrice: 4,
         purchasable: false,
         purchaseModal: false,
+        loadingCheckOut: false
     }
 
     updatePurchaseState (ingredients) {
@@ -80,7 +84,29 @@ class BurgerBuilder extends Component {
     };
 
     purchaseProceedHandler = () => {
-        alert('Continue with burger!');
+        this.setState({loadingCheckOut: true})
+        const order = {
+            ingredients: this.state.ingredients,
+            price: this.state.totalPrice,
+            // better to change price to raw data and calculate the price in the backend, cause user can manipulate the price
+            customer: {
+                name: 'John Doe',
+                address: {
+                    street: 'Black Mesa Research Facility',
+                    zipCode: '12456789'
+                },
+                email: 'test@bmesa.us',
+                tel: '854216889421'
+            }
+        }
+
+        axios.post('/orders.json', order) //.json only for FIREBASE
+        .then(res => {
+            this.setState({loadingCheckOut: false, purchaseModal: false });
+        })
+        .catch(error => {
+            this.setState({loadingCheckOut: false, purchaseModal: false });
+        }); 
     };
 
     render() {
@@ -93,11 +119,20 @@ class BurgerBuilder extends Component {
             disabledInfo[key] = disabledInfo[key] <= 0;
         }
 
+        let orderSummary = <OrderSummary 
+        ingredients={this.state.ingredients} 
+        purchaseCancel={this.purchaseCancelHandler}
+        purchaseProceed={this.purchaseProceedHandler} 
+        price={this.state.totalPrice} />;
+
+        if (this.state.loadingCheckOut) {
+            orderSummary = <Spinner />;
+        }
+
         return (
             <Aux>
                 <Modal show={this.state.purchaseModal} modalClosed={this.purchaseCancelHandler} >
-                    <OrderSummary ingredients={this.state.ingredients} purchaseCancel={this.purchaseCancelHandler}
-                    purchaseProceed={this.purchaseProceedHandler} price={this.state.totalPrice} />
+                    { orderSummary }
                 </Modal>
                 <Burger ingredients={this.state.ingredients} />
                 <BuildControls 
@@ -111,4 +146,4 @@ class BurgerBuilder extends Component {
     }
 }
 
-export default BurgerBuilder;
+export default withErrorHandler(BurgerBuilder, axios);
