@@ -17,16 +17,24 @@ const INGREDIENT_PRICES = {
 
 class BurgerBuilder extends Component {
     state = {
-        ingredients: {
-            salad: 0,
-            bacon: 0,
-            cheese: 0,
-            meat: 0,
-        },
+        ingredients: null,      
         totalPrice: 4,
         purchasable: false,
         purchaseModal: false,
-        loadingCheckOut: false
+        loadingCheckOut: false,
+        error: false
+    }
+
+    //fetching from firebase - {salad: 0, bacon: 0, cheese: 0, meat: 0,}
+
+    componentDidMount () {
+        axios.get('https://reactburgerbuilder-77bd6.firebaseio.com/ingredients.json')
+        .then(response => {
+            this.setState({ingredients: response.data});
+        })
+        .catch(error => {
+            this.setState({error: true});
+        });
     }
 
     updatePurchaseState (ingredients) {
@@ -111,7 +119,7 @@ class BurgerBuilder extends Component {
 
     render() {
     
-    // Checks, if there's any ingredient, if none disables it
+        // Checks, if there's any ingredient, if none disables it
         const disabledInfo = {
             ...this.state.ingredients
         };
@@ -119,12 +127,38 @@ class BurgerBuilder extends Component {
             disabledInfo[key] = disabledInfo[key] <= 0;
         }
 
-        let orderSummary = <OrderSummary 
-        ingredients={this.state.ingredients} 
-        purchaseCancel={this.purchaseCancelHandler}
-        purchaseProceed={this.purchaseProceedHandler} 
-        price={this.state.totalPrice} />;
 
+        // orderSummary set to null because it's using this.state.ingredients which
+        // we're fetching from Firebase (in componentDidMount), data isn't present on the rendering (due to how Life-Cycles methods work)
+        // and results in crashing
+        let orderSummary = null;
+        // we're setting burger to a <Spinner> and start checking if this.state.ingredient != null 
+        // if that's the case, we're reassigning the variable to according components
+        // the same thing is to orderSummary
+        let burger = this.state.error ? <p>Problem with loading ingredients, please reload page</p> :  <Spinner />;
+
+        if (this.state.ingredients) {
+            burger = (
+                <Aux>
+                    <Burger ingredients={this.state.ingredients} />
+                    <BuildControls 
+                    ingredientAdded={this.addIngredientHandler} ingredientRemoved={this.removeIngredientHandler} 
+                    disabled={disabledInfo} price={this.state.totalPrice}
+                    purchasable={this.state.purchasable}
+                    purchaseMode={this.purchaseHandler}
+                    />
+                </Aux>
+            );
+
+           orderSummary = <OrderSummary 
+           ingredients={this.state.ingredients} 
+           purchaseCancel={this.purchaseCancelHandler}
+           purchaseProceed={this.purchaseProceedHandler} 
+           price={this.state.totalPrice} />;
+        };
+
+        // loading ? then assign Spinner 
+        
         if (this.state.loadingCheckOut) {
             orderSummary = <Spinner />;
         }
@@ -134,13 +168,7 @@ class BurgerBuilder extends Component {
                 <Modal show={this.state.purchaseModal} modalClosed={this.purchaseCancelHandler} >
                     { orderSummary }
                 </Modal>
-                <Burger ingredients={this.state.ingredients} />
-                <BuildControls 
-                ingredientAdded={this.addIngredientHandler} ingredientRemoved={this.removeIngredientHandler} 
-                disabled={disabledInfo} price={this.state.totalPrice}
-                purchasable={this.state.purchasable}
-                purchaseMode={this.purchaseHandler}
-                />
+                { burger }
             </Aux>
         );
     }
